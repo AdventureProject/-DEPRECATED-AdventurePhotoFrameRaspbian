@@ -47,10 +47,17 @@ def show_loading():
 	show_image(loading_img)
 
 
+def text(txt, position):
+	font = pygame.font.Font(None, 64)
+	scoretext = font.render(txt, 1, (255, 255, 255))
+	screen.blit(scoretext, position)
+
+
 def show_image(image):
 	screen.fill(black)
 	if image is not None:
 		screen.blit(image, (0, 0))
+
 	pygame.display.flip()
 
 
@@ -62,16 +69,19 @@ class Timer:
 	interval = 0
 
 	def start(self, interval):
-		self.startTime = time.clock()
+		self.startTime = time.time()
 		self.interval = interval
 
-	def timerIsUp(self):
-		return time.clock() > (self.startTime + self.interval)
+	def timer_is_up(self):
+		return time.time() > (self.startTime + self.interval)
+
+	def elapsed_time(self):
+		return time.time() - self.startTime
 
 
 # START EXECUTION
 
-sys.stdout = open("/home/pi/logs/adventure_app.log", "w")
+# sys.stdout = open("/home/pi/logs/adventure_app.log", "w")
 
 print('Starting Adventure.Rocks!')
 
@@ -81,6 +91,7 @@ black = (0, 0, 0)
 w = 800
 h = 480
 
+pygame.init()
 screen = pygame.display.set_mode((w, h), pygame.FULLSCREEN)
 screen.fill(black)
 pygame.mouse.set_visible(0)
@@ -90,7 +101,7 @@ show_loading()
 
 img = get_photo()
 
-intervalSeconds = 1 * 60
+intervalSeconds = 5 * 60
 
 timer = Timer()
 timer.start(intervalSeconds)
@@ -111,7 +122,7 @@ while running:
 			img = get_photo()
 			timer.start(intervalSeconds)
 
-	if timer.timerIsUp():
+	if timer.timer_is_up():
 		print('Rotating to new image')
 		show_loading()
 		img = get_photo()
