@@ -1,6 +1,6 @@
 from __future__ import print_function
 from pygame.locals import *
-import sys
+import os
 import time
 import urllib, json
 import pygame
@@ -10,19 +10,41 @@ from resizeimage import resizeimage
 
 def download_photo():
 	print('fetching data...')
-	url = "http://wethinkadventure.rocks/photoframe"
-	response = urllib.urlopen(url)
-	data = json.loads(response.read())
-
-	image_url = data['image']
-
-	print(image_url)
-	print('downloading image ...')
 
 	file_name = 'current.jpg'
-	f = open(file_name, 'wb')
-	f.write(urllib.urlopen(image_url).read())
-	f.close()
+	image_key = 'image'
+	url = "http://wethinkadventure.rocks/photoframe"
+
+	response = urllib.urlopen(url)
+	response_code = response.getcode()
+
+	if response_code is not None and response_code is 200:
+		print('parsing data...')
+
+		try:
+			data = json.loads(response.read())
+			if data is not None and image_key in data:
+				image_url = data[image_key]
+
+				print(image_url)
+				print('downloading image ...')
+
+				temp_file_name = file_name + '.tmp'
+
+				f = open(temp_file_name, 'wb')
+				f.write(urllib.urlopen(image_url).read())
+				f.close()
+
+				os.rename(temp_file_name, file_name)
+
+			else:
+				print('failed to parse data...')
+		except ValueError:
+			print('Decoding JSON has failed')
+		except urllib.error.URLError as e:
+			print(e.reason)
+	else:
+		print('failed with status code: ' + str(response_code))
 
 	return file_name
 
