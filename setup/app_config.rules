@@ -1,0 +1,2 @@
+ACTION=="add", ATTRS{idVendor}=="0930", ATTRS{idProduct}=="6545", RUN+="/app/config.sh"
+ACTION=="remove", ENV{ID_VENDOR_ID}=="0930", ENV{ID_MODEL_ID}=="6545", RUN+="/app/reboot.sh"
