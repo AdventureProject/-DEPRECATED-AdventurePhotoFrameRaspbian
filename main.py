@@ -188,7 +188,7 @@ def draw_text_in_box(surface, text_string, rect, font):
 
 
 def draw_text_simple(txt, position, color, font, surface):
-	log('Show text: ' + txt)
+	#log('Show text: ' + txt)
 	rendered_text = font.render(txt, 1, color)
 	surface.blit(rendered_text, position)
 
@@ -203,7 +203,7 @@ def show_loading():
 	pygame.display.flip()
 
 
-def render(cur_photo, show_info = False, show_tutorial = False, show_about = False):
+def render(cur_photo, show_info = False, show_tutorial = False, show_about = False, has_wifi = True):
 	screen.fill(BLACK)
 	if cur_photo.bitmap is not None:
 		screen.blit(cur_photo.bitmap, (0, 0))
@@ -256,6 +256,10 @@ def render(cur_photo, show_info = False, show_tutorial = False, show_about = Fal
 		draw_text_simple("Created By:", [PADDING, PADDING + large_font_height + (basic_font_height * 3)], BLACK, basicFont, screen)
 		draw_text_simple("    Adam & Stacy Brown", [PADDING, PADDING + large_font_height + (basic_font_height * 4)], BLACK, basicFont, screen)
 
+	if not has_wifi:
+		icon_rect = wifi_download_icon.get_rect()
+		screen.blit( wifi_download_icon, [(w/2)-(icon_rect.width/2),0] )
+		#draw_text_simple("Wi-Fi Down", [PADDING, PADDING], BLACK, largeFont, screen)
 
 	pygame.display.flip()
 
@@ -370,14 +374,24 @@ pygame.display.set_caption('Adventure.Rocks')
 basicFont = pygame.font.SysFont(None, 48)
 largeFont = pygame.font.SysFont(None, 64)
 
+wifi_download_icon = pygame.image.load('wifi_down.png').convert_alpha(screen)
+
 show_loading()
 
 photo = get_photo( PHOTO_FRAME_ID )
 
-intervalSeconds = 5 * 60
+photoIntervalSeconds = 5 * 60
 
-timer = Timer()
-timer.start(intervalSeconds)
+photo_timer = Timer()
+photo_timer.start(photoIntervalSeconds)
+
+wifiIntervalSeconds = 30
+
+wifi_timer = Timer()
+wifi_timer.start(wifiIntervalSeconds)
+
+has_wifi_connection = (call(["/app/check_wifi.sh", ""]) == 0)
+log( "has_wifi_connection: " + str(has_wifi_connection) )
 
 displaying_tutorial = False
 displaying_about = False
@@ -415,7 +429,7 @@ while running:
 					log('User wants a new image')
 					show_loading()
 					photo = get_photo( PHOTO_FRAME_ID )
-					timer.start(intervalSeconds)
+					photo_timer.start(photoIntervalSeconds)
 				elif check_hit(pos, TutorialRect):
 					if not dismissing_tutorial:
 						log('User wants tutorial')
@@ -436,16 +450,21 @@ while running:
 						download_map_images(photo)
 					displaying_info = True
 
+	if wifi_timer.timer_is_up():
+		log("check WiFi: " + str(call(["/app/check_wifi.sh", ""])))
+		has_wifi_connection = (call(["/app/check_wifi.sh", ""]) == 0)
+		log("has_wifi_connection: " + str(has_wifi_connection))
+		wifi_timer.start(wifiIntervalSeconds)
 
-	if timer.timer_is_up():
+	if photo_timer.timer_is_up():
 		displaying_info = False
 		log('Rotating to new image')
 		show_loading()
 		photo = get_photo( PHOTO_FRAME_ID )
-		timer.start(intervalSeconds)
+		photo_timer.start(photoIntervalSeconds)
 		log('Rotation complete.')
 
-	render(photo, displaying_info, displaying_tutorial, displaying_about)
+	render(photo, displaying_info, displaying_tutorial, displaying_about, has_wifi_connection)
 
 pygame.display.quit()
 
