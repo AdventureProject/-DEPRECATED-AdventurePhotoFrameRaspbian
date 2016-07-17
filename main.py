@@ -5,6 +5,7 @@ import time
 import urllib2
 import json
 import pygame
+from subprocess import call
 from PIL import Image
 from resizeimage import resizeimage
 from datetime import datetime
@@ -177,6 +178,21 @@ def draw_text(surface, text, color, rect, font, aa=False, bkg=None):
 	return text
 
 
+def draw_text_in_box(surface, text_string, rect):
+	rendered_text = basicFont.render(text_string, True, BLACK)
+	text_rect = rendered_text.get_rect()
+	halfWidth = rect.width/2
+	halfHeight = rect.height/2
+
+	surface.blit(rendered_text, [rect.left + halfWidth - (text_rect.width/2), rect.top + halfHeight - (text_rect.height/2)])
+
+
+def draw_text_simple(txt, position, color, font, surface):
+	log('Show text: ' + txt)
+	rendered_text = font.render(txt, 1, color)
+	surface.blit(rendered_text, position)
+
+
 def show_loading():
 	log('Show loading screen.')
 	loading_img = pygame.image.load('/app/loading.png')
@@ -187,13 +203,7 @@ def show_loading():
 	pygame.display.flip()
 
 
-def text(txt, position):
-	log('Show text: ' + txt)
-	font = pygame.font.Font(None, 64)
-	scoretext = font.render(txt, 1, (255, 255, 255))
-	screen.blit(scoretext, position)
-
-def render(cur_photo, show_info = False):
+def render(cur_photo, show_info = False, show_tutorial = False, show_about = False):
 	screen.fill(BLACK)
 	if cur_photo.bitmap is not None:
 		screen.blit(cur_photo.bitmap, (0, 0))
@@ -201,11 +211,11 @@ def render(cur_photo, show_info = False):
 	#debug drawing
 	#pygame.draw.rect(screen, RED, NextRect)
 
+	PADDING = 15
+	DOUBLE_PADDING = PADDING * 2
+
 	if show_info:
-		PADDING = 15
-                
 		if cur_photo.location_images is not None:
-                        log('has locations to show')
 			if cur_photo.location_images.zoomed_in is not None:
 				screen.blit(cur_photo.location_images.zoomed_in, (400, 0))
 
@@ -214,8 +224,7 @@ def render(cur_photo, show_info = False):
 
 		if cur_photo.info.get('title'):
 			# Display line wrapped text
-			double_padding = PADDING*2
-			title_rect = Rect((PADDING,PADDING),(w-double_padding,h/2))
+			title_rect = Rect((PADDING,PADDING),(w-DOUBLE_PADDING,h/2))
 			draw_text(screen, cur_photo.info['title'], BLACK, title_rect, basicFont, True)
 
 		if cur_photo.info.get('date'):
@@ -223,10 +232,40 @@ def render(cur_photo, show_info = False):
 			text = basicFont.render(cur_photo.info['date'], True, BLACK)
 			text_rect = text.get_rect()
 			screen.blit(text, [PADDING, h - text_rect.height - PADDING])
+	elif show_tutorial:
+		pygame.draw.rect(screen, WHITE, ScreenRect)
+		pygame.draw.rect(screen, GREEN, TutorialRect)
+		pygame.draw.rect(screen, ORANGE, AboutRect)
+		pygame.draw.rect(screen, BLUE, BacklightRect)
+		pygame.draw.rect(screen, RED, NextRect)
+
+		draw_text_in_box(screen, "Show Tutorial", TutorialRect)
+		draw_text_in_box(screen, "Brightness", BacklightRect)
+		draw_text_in_box(screen, "Next Photo", NextRect)
+		draw_text_in_box(screen, "About", AboutRect)
+
+		draw_text_in_box(screen, "Photo Info", ScreenRect)
+	elif show_about:
+		pygame.draw.rect(screen, WHITE, ScreenRect)
+
+		#draw_text_in_box(screen, about_str, ScreenRect)
+		font_height = basicFont.size("Tg")[1]
+		draw_text_simple("We Think Adventure.Rocks", [PADDING,PADDING], BLACK, basicFont, screen)
+		draw_text_simple("www.wethinkadventure.rocks", [PADDING, PADDING + (font_height * 2)], BLACK, basicFont, screen)
+		draw_text_simple("Created By:", [PADDING, PADDING + (font_height * 4)], BLACK, basicFont, screen)
+		draw_text_simple("    Adam & Stacy Brown", [PADDING, PADDING + (font_height * 5)], BLACK, basicFont, screen)
+
 
 	pygame.display.flip()
 
+
+TutorialRect = Rect((0, 0), (280, 170))
+BacklightRect = Rect((0, 310), (280, 170))
 NextRect = Rect((520, 310), (280, 170))
+AboutRect = Rect((520, 0), (280, 170))
+
+ScreenRect = Rect((0, 0), (800, 480))
+
 def check_hit(check_pos, rect):
 	return rect.collidepoint(check_pos)
 
@@ -235,7 +274,7 @@ def get_google_maps_large_view_url( location ):
 	return base_url.format(GOOGLE_MAPS_API_KEY, location)
 
 def get_google_maps_small_view_url( location ):
-        base_url = "http://maps.googleapis.com/maps/api/staticmap?center={1}&zoom=15&scale=1&size=400x480&maptype=terrain&key={0}&format=png&visual_refresh=true&markers=size:mid%7Ccolor:0xff0000%7Clabel:%7C{1}"
+	base_url = "http://maps.googleapis.com/maps/api/staticmap?center={1}&zoom=15&scale=1&size=400x480&maptype=terrain&key={0}&format=png&visual_refresh=true&markers=size:mid%7Ccolor:0xff0000%7Clabel:%7C{1}"
 	return base_url.format(GOOGLE_MAPS_API_KEY, location)
 
 
@@ -276,10 +315,22 @@ class Timer:
 		return time.time() - self.startTime
 
 def get_file_contents(file_path):
-        contents = None
-        with open(file_path, 'r') as file:
-            contents = file.read()
-        return contents
+		contents = None
+		with open(file_path, 'r') as file:
+			contents = file.read()
+		return contents
+
+def get_next_brightness( cur_brightness ):
+	BRIGHTNESS_INCREMENT = 64
+
+	if cur_brightness >= 255:
+		new_brightness = 0
+	else:
+		new_brightness = cur_brightness + BRIGHTNESS_INCREMENT
+		if new_brightness > 255:
+			new_brightness = 255
+
+	return new_brightness
 
 # START EXECUTION
 log('==========================')
@@ -302,6 +353,7 @@ WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
+ORANGE = (255, 128, 0)
 
 w = 800
 h = 480
@@ -325,6 +377,11 @@ intervalSeconds = 5 * 60
 timer = Timer()
 timer.start(intervalSeconds)
 
+displaying_tutorial = False
+displaying_about = False
+
+current_brightness = 255
+
 running = True
 while running:
 	events = pygame.event.get()
@@ -336,10 +393,20 @@ while running:
 				running = False
 		if event.type == pygame.MOUSEBUTTONUP:
 			pos = pygame.mouse.get_pos()
+
+			dismissing_tutorial = False
+			if displaying_tutorial:
+				log('Hiding tutorial')
+				displaying_tutorial = False
+				dismissing_tutorial = True
+
 			log('x:' + str(pos[0]) + ' y:' + str(pos[1]))
 			if displaying_info:
-				log('Hidding image details')
+				log('Hiding image details')
 				displaying_info = False
+			elif displaying_about:
+				log('Hiding about')
+				displaying_about = False
 			else:
 				# Detect click for Next Photo
 				if check_hit(pos, NextRect):
@@ -347,6 +414,18 @@ while running:
 					show_loading()
 					photo = get_photo( PHOTO_FRAME_ID )
 					timer.start(intervalSeconds)
+				elif check_hit(pos, TutorialRect):
+					if not dismissing_tutorial:
+						log('User wants tutorial')
+						displaying_tutorial = True
+				elif check_hit(pos, BacklightRect):
+					log('User wants to change brightness')
+					current_brightness = get_next_brightness(current_brightness)
+					log('New Brightness: ' + str(current_brightness))
+					call(["/app/backlight.sh", str(current_brightness)])
+				elif check_hit(pos, AboutRect):
+					log('User wants to view About')
+					displaying_about = True
 				else:
 					log('User wants image details')
 					# If we don't have images loaded and we DO have a location, download them
@@ -364,7 +443,7 @@ while running:
 		timer.start(intervalSeconds)
 		log('Rotation complete.')
 
-	render(photo, displaying_info)
+	render(photo, displaying_info, displaying_tutorial, displaying_about)
 
 pygame.display.quit()
 
