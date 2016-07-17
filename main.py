@@ -178,8 +178,8 @@ def draw_text(surface, text, color, rect, font, aa=False, bkg=None):
 	return text
 
 
-def draw_text_in_box(surface, text_string, rect):
-	rendered_text = basicFont.render(text_string, True, BLACK)
+def draw_text_in_box(surface, text_string, rect, font):
+	rendered_text = font.render(text_string, True, BLACK)
 	text_rect = rendered_text.get_rect()
 	halfWidth = rect.width/2
 	halfHeight = rect.height/2
@@ -239,21 +239,22 @@ def render(cur_photo, show_info = False, show_tutorial = False, show_about = Fal
 		pygame.draw.rect(screen, BLUE, BacklightRect)
 		pygame.draw.rect(screen, RED, NextRect)
 
-		draw_text_in_box(screen, "Show Tutorial", TutorialRect)
-		draw_text_in_box(screen, "Brightness", BacklightRect)
-		draw_text_in_box(screen, "Next Photo", NextRect)
-		draw_text_in_box(screen, "About", AboutRect)
+		draw_text_in_box(screen, "Show Tutorial", TutorialRect, basicFont)
+		draw_text_in_box(screen, "Brightness", BacklightRect, basicFont)
+		draw_text_in_box(screen, "Next Photo", NextRect, basicFont)
+		draw_text_in_box(screen, "About", AboutRect, basicFont)
 
-		draw_text_in_box(screen, "Photo Info", ScreenRect)
+		draw_text_in_box(screen, "Photo Info", ScreenRect, largeFont)
 	elif show_about:
 		pygame.draw.rect(screen, WHITE, ScreenRect)
 
-		#draw_text_in_box(screen, about_str, ScreenRect)
-		font_height = basicFont.size("Tg")[1]
-		draw_text_simple("We Think Adventure.Rocks", [PADDING,PADDING], BLACK, basicFont, screen)
-		draw_text_simple("www.wethinkadventure.rocks", [PADDING, PADDING + (font_height * 2)], BLACK, basicFont, screen)
-		draw_text_simple("Created By:", [PADDING, PADDING + (font_height * 4)], BLACK, basicFont, screen)
-		draw_text_simple("    Adam & Stacy Brown", [PADDING, PADDING + (font_height * 5)], BLACK, basicFont, screen)
+		basic_font_height = basicFont.size("Tg")[1]
+		large_font_height = largeFont.size("Tg")[1]
+
+		draw_text_simple("We Think Adventure.Rocks", [PADDING,PADDING], BLACK, largeFont, screen)
+		draw_text_simple("www.wethinkadventure.rocks", [PADDING, PADDING + large_font_height + basic_font_height], BLACK, basicFont, screen)
+		draw_text_simple("Created By:", [PADDING, PADDING + large_font_height + (basic_font_height * 3)], BLACK, basicFont, screen)
+		draw_text_simple("    Adam & Stacy Brown", [PADDING, PADDING + large_font_height + (basic_font_height * 4)], BLACK, basicFont, screen)
 
 
 	pygame.display.flip()
@@ -367,6 +368,7 @@ pygame.mouse.set_visible(0)
 pygame.display.set_caption('Adventure.Rocks')
 
 basicFont = pygame.font.SysFont(None, 48)
+largeFont = pygame.font.SysFont(None, 64)
 
 show_loading()
 
