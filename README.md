@@ -175,4 +175,10 @@ Set to the next unique ID
 
 	sudo chmod +x /app/*.sh
 	
-21) Format USB drive with label: `CONFIG`
+21) Once everything is setup, set the RPi to boot to CLI
+
+	sudo raspi-config
+	
+Go to `3) Boot options` select `B2 Console Autologin Text console`
+	
+22) Format USB drive with label: `CONFIG`
