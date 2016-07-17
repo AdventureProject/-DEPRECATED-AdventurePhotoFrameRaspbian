@@ -14,17 +14,21 @@ This is the set of scripts and configuration steps for creating a PhotoFrame cli
 4) Boot, connect to WiFi
 
 5) Change pi password
+
 	passwd
-	[enter unique password]
+	
+*[enter unique password]*
 
 ## Clean up the Pi software
 
 6) Update everything
+
 	sudo apt-get update
 	sudo apt-get upgrade
 	sudo apt-get dist-upgrade
 
 7) Remove unused software:
+
 	sudo apt-get remove --purge libreoffice*
 	sudo apt-get remove --purge wolfram-engine
 	sudo apt-get remove --purge bluej
@@ -42,7 +46,7 @@ This is the set of scripts and configuration steps for creating a PhotoFrame cli
 ## Begin configuring the Pi
 	
 8) Disable screen blanking
-	If you want to disable the blank screen at every startup, just update the `/etc/lightdm/lightdm.conf` file and add in the `[SeatDefaults]` section the following command:
+	Update the `/etc/lightdm/lightdm.conf` file and add in the `[SeatDefaults]` section the following command:
 
 	[SeatDefaults]
 	xserver-command=X -s 0 -dpms
@@ -53,8 +57,8 @@ This is the set of scripts and configuration steps for creating a PhotoFrame cli
 
 	sudo iw dev wlan0 set power_save off
 
-10) Configure wlan0
-(http://weworkweplay.com/play/automatically-connect-a-raspberry-pi-to-a-wifi-network/)
+10) Configure `wlan0` to be automatic and durable: 
+(*refrenced from here: http://weworkweplay.com/play/automatically-connect-a-raspberry-pi-to-a-wifi-network/*)
 
 	sudo nano /etc/network/interfaces
 	
@@ -63,7 +67,7 @@ Add this line to the top of the file:
 
 	auto wlan0
 
-Ensure the wlan0 section of the file looks like this:
+Ensure the `wlan0` section of the file looks like this:
 
 	allow-hotplug wlan0
 	iface wlan0 inet dhcp
@@ -77,7 +81,7 @@ Ensure the wlan0 section of the file looks like this:
 
 Edit these params:
 
-	workgroup = BROWNTOWN
+	workgroup = WORKGROUP
 	wins support = yes
 	
 Add this new section:
@@ -107,7 +111,7 @@ Change:
 To:
 
 	console=tty9 loglevel=3 logo.nologo
-Now you can use Ctrl+Alt+F9 to see the logs, and `logo.nologo` removes the RaspberryPi images
+Now you can use `Ctrl+Alt+F9` to see the logs, and `logo.nologo` removes the RaspberryPi images
 	
 13) Splash Screen
 
