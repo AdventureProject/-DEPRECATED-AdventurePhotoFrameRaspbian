@@ -11,9 +11,9 @@ This is the set of scripts and configuration steps for creating a PhotoFrame cli
 
 3) Put all the hardware together and boot with keyboard and mouse hooked up
 
-4) Boot, connect to WiFi
+4) Connect to WiFi
 
-5) Change pi password
+5) Change the user password for pi
 
 	passwd
 	
@@ -45,8 +45,11 @@ This is the set of scripts and configuration steps for creating a PhotoFrame cli
 	
 ## Begin configuring the Pi
 	
-8) Disable screen blanking
-	Update the `/etc/lightdm/lightdm.conf` file and add in the `[SeatDefaults]` section the following command:
+8) Disable screen blanking.
+
+	sudo nano /etc/lightdm/lightdm.conf
+	
+Add the following to the `[SeatDefaults]` section:
 
 	[SeatDefaults]
 	xserver-command=X -s 0 -dpms
@@ -58,6 +61,7 @@ This is the set of scripts and configuration steps for creating a PhotoFrame cli
 	sudo iw dev wlan0 set power_save off
 
 10) Configure `wlan0` to be automatic and durable: 
+
 (*refrenced from here: http://weworkweplay.com/play/automatically-connect-a-raspberry-pi-to-a-wifi-network/*)
 
 	sudo nano /etc/network/interfaces
@@ -98,8 +102,8 @@ Add this new section:
 
 Configure the user:
 
-	 smbpasswd -a pi
-	 #User the pis logon password
+	smbpasswd -a pi
+[*use the pi's logon password*]
 
 12) Hide boot logs
 
