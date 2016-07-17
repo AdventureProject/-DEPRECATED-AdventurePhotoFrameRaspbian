@@ -203,13 +203,10 @@ def show_loading():
 	pygame.display.flip()
 
 
-def render(cur_photo, show_info = False, show_tutorial = False, show_about = False, has_wifi = True):
+def render(cur_photo, show_info = False, show_tutorial = False, show_about = False, has_wifi = True, calibrated = True):
 	screen.fill(BLACK)
 	if cur_photo.bitmap is not None:
 		screen.blit(cur_photo.bitmap, (0, 0))
-
-	#debug drawing
-	#pygame.draw.rect(screen, RED, NextRect)
 
 	PADDING = 15
 	DOUBLE_PADDING = PADDING * 2
@@ -256,6 +253,11 @@ def render(cur_photo, show_info = False, show_tutorial = False, show_about = Fal
 		draw_text_simple("Created By:", [PADDING, PADDING + large_font_height + (basic_font_height * 3)], BLACK, basicFont, screen)
 		draw_text_simple("    Adam & Stacy Brown", [PADDING, PADDING + large_font_height + (basic_font_height * 4)], BLACK, basicFont, screen)
 
+	if not calibrated:
+		pygame.draw.rect(screen, WHITE, ScreenRect)
+		pygame.draw.rect(screen, RED, CalibrateRect)
+		draw_text_in_box(screen, "Touch Here", CalibrateRect, basicFont)
+
 	if not has_wifi:
 		icon_rect = wifi_download_icon.get_rect()
 		screen.blit( wifi_download_icon, [(w/2)-(icon_rect.width/2),0] )
@@ -263,6 +265,7 @@ def render(cur_photo, show_info = False, show_tutorial = False, show_about = Fal
 
 	pygame.display.flip()
 
+CalibrateRect = Rect((0, 0), (280, 85))
 
 TutorialRect = Rect((0, 0), (280, 170))
 BacklightRect = Rect((0, 310), (280, 170))
@@ -360,13 +363,45 @@ GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 ORANGE = (255, 128, 0)
 
-w = 800
-h = 480
-
 displaying_info = False
 
+# This is a horrible hack. We need the user to touch near 0,0 in order
+#	for the touch coords to be properly calibrated
+calibrated = False
+
+# Based on "Python GUI in Linux frame buffer"
+# http://www.karoltomala.com/blog/?p=679
+disp_no = os.getenv("DISPLAY")
+if disp_no:
+	log("I'm running under X display = {0}".format(disp_no))
+
+# Check which frame buffer drivers are available
+# Start with fbcon since directfb hangs with composite output
+drivers = ['fbcon', 'directfb', 'svgalib']
+driver_found = False
+for driver in drivers:
+	# Make sure that SDL_VIDEODRIVER is set
+	if not os.getenv('SDL_VIDEODRIVER'):
+		os.putenv('SDL_VIDEODRIVER', driver)
+	try:
+		pygame.display.init()
+	except pygame.error:
+		print 'Driver: {0} failed.'.format(driver)
+		continue
+	driver_found = True
+	break
+
+if not driver_found:
+	raise Exception('No suitable video driver found!')
+
+size = (pygame.display.Info().current_w, pygame.display.Info().current_h)
+
+w = size[0] # should be 800
+h = size[1] # should be 480
+log("Screen Size: " + str(w) + "x" + str(h))
+
 pygame.init()
-screen = pygame.display.set_mode((w, h), pygame.FULLSCREEN)
+screen = pygame.display.set_mode(size, pygame.FULLSCREEN)
 screen.fill(BLACK)
 pygame.mouse.set_visible(0)
 pygame.display.set_caption('Adventure.Rocks')
@@ -417,43 +452,50 @@ while running:
 				dismissing_tutorial = True
 
 			log('x:' + str(pos[0]) + ' y:' + str(pos[1]))
-			if displaying_info:
-				log('Hiding image details')
-				displaying_info = False
-			elif displaying_about:
-				log('Hiding about')
-				displaying_about = False
+
+			if not calibrated:
+				if check_hit(pos, CalibrateRect):
+					log('Calibration complete')
+					calibrated = True
+					displaying_tutorial = True
 			else:
-				# Detect click for Next Photo
-				if check_hit(pos, NextRect):
-					log('User wants a new image')
-					show_loading()
-					photo = get_photo( PHOTO_FRAME_ID )
-					photo_timer.start(photoIntervalSeconds)
-				elif check_hit(pos, TutorialRect):
-					if not dismissing_tutorial:
-						log('User wants tutorial')
-						displaying_tutorial = True
-				elif check_hit(pos, BacklightRect):
-					log('User wants to change brightness')
-					current_brightness = get_next_brightness(current_brightness)
-					log('New Brightness: ' + str(current_brightness))
-					call(["/app/backlight.sh", str(current_brightness)])
-				elif check_hit(pos, AboutRect):
-					log('User wants to view About')
-					displaying_about = True
+				if displaying_info:
+					log('Hiding image details')
+					displaying_info = False
+				elif displaying_about:
+					log('Hiding about')
+					displaying_about = False
 				else:
-					log('User wants image details')
-					# If we don't have images loaded and we DO have a location, download them
-					if photo.location_images is None and photo.info['location']:
+					# Detect click for Next Photo
+					if check_hit(pos, NextRect):
+						log('User wants a new image')
 						show_loading()
-						download_map_images(photo)
-					displaying_info = True
+						photo = get_photo( PHOTO_FRAME_ID )
+						photo_timer.start(photoIntervalSeconds)
+					elif check_hit(pos, TutorialRect):
+						if not dismissing_tutorial:
+							log('User wants tutorial')
+							displaying_tutorial = True
+					elif check_hit(pos, BacklightRect):
+						log('User wants to change brightness')
+						current_brightness = get_next_brightness(current_brightness)
+						log('New Brightness: ' + str(current_brightness))
+						call(["/app/backlight.sh", str(current_brightness)])
+					elif check_hit(pos, AboutRect):
+						log('User wants to view About')
+						displaying_about = True
+					else:
+						log('User wants image details')
+						# If we don't have images loaded and we DO have a location, download them
+						if photo.location_images is None and photo.info['location']:
+							show_loading()
+							download_map_images(photo)
+						displaying_info = True
 
 	if wifi_timer.timer_is_up():
-		log("check WiFi: " + str(call(["/app/check_wifi.sh", ""])))
 		has_wifi_connection = (call(["/app/check_wifi.sh", ""]) == 0)
-		log("has_wifi_connection: " + str(has_wifi_connection))
+		if not has_wifi_connection:
+			log("has_wifi_connection: " + str(has_wifi_connection))
 		wifi_timer.start(wifiIntervalSeconds)
 
 	if photo_timer.timer_is_up():
@@ -464,7 +506,7 @@ while running:
 		photo_timer.start(photoIntervalSeconds)
 		log('Rotation complete.')
 
-	render(photo, displaying_info, displaying_tutorial, displaying_about, has_wifi_connection)
+	render(photo, displaying_info, displaying_tutorial, displaying_about, has_wifi_connection, calibrated)
 
 pygame.display.quit()
 
