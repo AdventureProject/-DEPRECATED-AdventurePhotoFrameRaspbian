@@ -15,10 +15,11 @@ version = get_file_contents('/app/config/VERSION')
 if version is None:
     version = 0
 
-errors = get_file_contents('/app/logs/app_errors.log')
+ERROR_FILE_PATH = '/app/logs/app_errors.log'
+errors = get_file_contents(ERROR_FILE_PATH)
 data = urllib.urlencode({'errors' : errors})
 
-PHOTO_FRAME_ID = get_file_contents( '/app/config/PHOTO_FRAME_ID' )
+PHOTO_FRAME_ID = get_file_contents('/app/config/PHOTO_FRAME_ID').strip()
 if PHOTO_FRAME_ID is None:
 	log('WARNING: PhotoFrame ID is missing!')
 else:
@@ -26,5 +27,11 @@ else:
     print(url)
     request = urllib2.Request(url, data)
     response = urllib2.urlopen(request)
-    
-    print(response.read())
+
+    result = response.read()
+    print(result)
+    if result and int(result) > 0:
+        print('Health check up complete, clearing errors.')
+        os.remove(ERROR_FILE_PATH)
+
+
