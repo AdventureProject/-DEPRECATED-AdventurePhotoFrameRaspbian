@@ -1,5 +1,6 @@
 import os
 import os.path
+from subprocess import call
 import urllib2
 import json
 import zipfile
@@ -23,6 +24,8 @@ up_to_date = True
 print "Checking for newer version..."
 print latest_release_url
 
+update_url = None
+
 # Find the latest update
 release_json = urllib2.urlopen(latest_release_url).read()
 if release_json:
@@ -36,19 +39,21 @@ if release_json:
 			if release_info.get('assets'):
 				assets = release_info['assets']
 				if len(assets) > 0 and assets[0].get('browser_download_url'):
-					browser_download_url = assets[0].get('browser_download_url')
+					update_url = assets[0].get('browser_download_url')
 		else:
 			print "Already up to date"
 
 if not up_to_date:
 	# Download the update files
-	temp_file_name = "update.tmp"
-	filename = "update.zip"
+	temp_file_name = "/app/update/update.tmp"
+	filename = "/app/update/update.zip"
 
 	print "Downloading update..."
 
+	print update_url
+
 	with open(temp_file_name, 'wb') as f:
-		f.write(urllib2.urlopen(browser_download_url).read())
+		f.write(urllib2.urlopen(update_url).read())
 		if os.path.getsize(temp_file_name) > 0:
 			print 'File download complete, move to complete'
 			os.rename(temp_file_name, filename)
@@ -60,7 +65,7 @@ if not up_to_date:
 	if os.path.isfile(filename):
 		print "Extracting update..."
 		zip = zipfile.ZipFile(filename)
-		zip.extractall()
+		zip.extractall('/app')
 		
 		try:
 			os.remove(filename)
@@ -70,6 +75,10 @@ if not up_to_date:
 		print "Writing version file..."
 		with open(version_file_name, "w") as version_file:
 			version_file.write(str(CURRENT_VERSION))
+
+		print "Update complete, rebooting."
+		call(["/app/reboot.sh", ""])
+
 	else:
 		print "Download failed."
 	
