@@ -157,6 +157,7 @@ Copy these contents into the root crontab:
 
 	sudo apt-get install libjpeg-dev
 	sudo apt-get install libpython-all-dev
+	sudo apt-get install python-pip
 	
 	sudo pip install python-resize-image
 	sudo pip install Pillow --upgrade
